@@ -5,14 +5,19 @@
     <ReactiveSequence>
       <ReactiveFallback>
         <ReactiveSequence>
-          <InplaceRotation/>
-          <DefaultTwist v_in="0.5"
-                        w_in="{w}"
-                        v="{v}"
-                        w="{w}"/>
+          <ReadSharedTwist v="{v}"
+                           w="{w}"/>
+          <Fallback>
+            <Sequence>
+              <InplaceRotation/>
+              <DefaultTwist v_in="0.5"
+                            w_in="{w}"
+                            v="{v}"
+                            w="{w}"/>
+            </Sequence>
+            <AlwaysSuccess/>
+          </Fallback>
         </ReactiveSequence>
-        <ReadSharedTwist v="{v}"
-                         w="{w}"/>
         <DefaultTwist v_in="0"
                       w_in="0"
                       v="{v}"
