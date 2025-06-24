@@ -10,7 +10,7 @@
 using json = nlohmann::json;
 
 typedef std::shared_ptr<LibSerial::SerialStream> SerialStreamPtr;
-
+static std::atomic<bool> g_serial_port_opened{false};
 
 class OpenSerialPort: public BT::SyncActionNode
 {
@@ -26,6 +26,10 @@ public:
 
     BT::NodeStatus tick() override
     {
+        if(g_serial_port_opened)
+        {
+            return BT::NodeStatus::SUCCESS; // Already opened
+        }
         std::string port;
         if (!getInput<std::string>("port", port)) {
             throw BT::RuntimeError("missing required input [port]");
@@ -40,6 +44,8 @@ public:
             serial_port_->SetFlowControl(LibSerial::FlowControl::FLOW_CONTROL_NONE);
             serial_port_->SetRTS(false);
             serial_port_->SetDTR(false);
+            g_serial_port_opened = true;
+            std::cout << "Serial port " << port << " opened successfully." << std::endl;
             return BT::NodeStatus::SUCCESS;
         } catch (const LibSerial::OpenFailed& e) {
             std::cerr << "Error opening serial port: " << e.what() << std::endl;
