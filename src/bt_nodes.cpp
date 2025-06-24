@@ -45,6 +45,10 @@ public:
             serial_port_->SetRTS(false);
             serial_port_->SetDTR(false);
             g_serial_port_opened = true;
+
+            json cmd = { {"T", 3}, {"lineNum", 0}, {"Text", "RoverController"} };
+            *serial_port_ << cmd.dump() << "\n";
+
             std::cout << "Serial port " << port << " opened successfully." << std::endl;
             return BT::NodeStatus::SUCCESS;
         } catch (const LibSerial::OpenFailed& e) {

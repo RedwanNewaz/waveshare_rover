@@ -6,32 +6,34 @@
       <RetryUntilSuccessful num_attempts="3">
         <OpenSerialPort port="/dev/serial0"/>
       </RetryUntilSuccessful>
-      <ReactiveSequence>
-        <ReactiveFallback>
-          <ReactiveSequence>
-            <ReadSharedTwist v="{v}"
-                             w="{w}"/>
-            <Fallback>
-              <Sequence>
-                <InplaceRotation/>
-                <DefaultTwist v_in="0.5"
-                              w_in="{w}"
-                              v="{v}"
-                              w="{w}"/>
-              </Sequence>
-              <AlwaysSuccess/>
-            </Fallback>
-          </ReactiveSequence>
-          <DefaultTwist v_in="0"
-                        w_in="0"
-                        v="{v}"
-                        w="{w}"/>
-        </ReactiveFallback>
-        <CreateJsonCmd v="{v}"
-                       w="{w}"
-                       json_str="{json_str}"/>
-        <SendSerialPort json_str="{json_str}"/>
-      </ReactiveSequence>
+      <KeepRunningUntilFailure>
+        <ReactiveSequence>
+          <ReactiveFallback>
+            <ReactiveSequence>
+              <ReadSharedTwist v="{v}"
+                               w="{w}"/>
+              <Fallback>
+                <Sequence>
+                  <InplaceRotation/>
+                  <DefaultTwist v_in="0.5"
+                                w_in="{w}"
+                                v="{v}"
+                                w="{w}"/>
+                </Sequence>
+                <AlwaysSuccess/>
+              </Fallback>
+            </ReactiveSequence>
+            <DefaultTwist v_in="0"
+                          w_in="0"
+                          v="{v}"
+                          w="{w}"/>
+          </ReactiveFallback>
+          <CreateJsonCmd v="{v}"
+                         w="{w}"
+                         json_str="{json_str}"/>
+          <SendSerialPort json_str="{json_str}"/>
+        </ReactiveSequence>
+      </KeepRunningUntilFailure>
     </Sequence>
   </BehaviorTree>
 
