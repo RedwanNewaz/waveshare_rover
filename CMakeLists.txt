@@ -30,8 +30,8 @@ ament_target_dependencies(
   "sensor_msgs"
   "tf2"
   "tf2_ros"
-  "behaviortree_cpp"
 )
+target_link_libraries(rover_controller_node behaviortree_cpp)
 
 install(TARGETS rover_controller_node
   DESTINATION lib/${PROJECT_NAME})
