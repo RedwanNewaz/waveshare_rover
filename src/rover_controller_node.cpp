@@ -4,6 +4,7 @@
 #include "bt_nodes.cpp"
 #include "rover_controller/shared_memory.hpp"
 
+
 using namespace std::chrono_literals;
 
 /* This example creates a subclass of Node and uses std::bind() to register a
@@ -17,7 +18,7 @@ class RoverController : public rclcpp::Node
     {
       this->declare_parameter<std::string>("tree_file", "/home/redwan/rover_ws/src/rover_controller/config/behavior_tree.xml"); // Declare tree file parameter
       this->declare_parameter<double>("wheel_base", 0.15 / 2.0); // Declare wheel base parameter
-
+     
       // Create a shared data object
       double wheel_base;
       std::string tree_file;
@@ -26,10 +27,16 @@ class RoverController : public rclcpp::Node
       this->get_parameter("wheel_base", wheel_base);
       this->get_parameter("tree_file", tree_file);  
 
+
+      // Initialize serial port (not opened yet)
+      serial_port_ = std::make_shared<LibSerial::SerialStream>();
+      
       // create a BehaviorTreeFactory
       BT::BehaviorTreeFactory factory;
+      factory.registerNodeType<OpenSerialPort>("OpenSerialPort", serial_port_);
+      factory.registerNodeType<SendSerialPort>("SendSerialPort", serial_port_);
       factory.registerNodeType<DefaultTwist>("DefaultTwist", shared_data_);
-      // factory.registerNodeType<InplaceRotation>("InplaceRotation", shared_data_);
+
 
       factory.registerSimpleCondition("InplaceRotation", [this](BT::TreeNode&) { 
         
@@ -70,6 +77,7 @@ class RoverController : public rclcpp::Node
     rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr subscription_;
     std::shared_ptr<SharedTwistData> shared_data_;
     std::shared_ptr<BT::Tree> tree_;
+    SerialStreamPtr serial_port_;
  
 };
 

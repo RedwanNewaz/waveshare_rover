@@ -2,30 +2,37 @@
 <root BTCPP_format="4"
       main_tree_to_execute="MainTree">
   <BehaviorTree ID="MainTree">
-    <ReactiveSequence>
-      <ReactiveFallback>
-        <ReactiveSequence>
-          <ReadSharedTwist v="{v}"
-                           w="{w}"/>
-          <Fallback>
-            <Sequence>
-              <InplaceRotation/>
-              <DefaultTwist v_in="0.5"
-                            w_in="{w}"
-                            v="{v}"
-                            w="{w}"/>
-            </Sequence>
-            <AlwaysSuccess/>
-          </Fallback>
-        </ReactiveSequence>
-        <DefaultTwist v_in="0"
-                      w_in="0"
-                      v="{v}"
-                      w="{w}"/>
-      </ReactiveFallback>
-      <CreateJsonCmd v="{v}"
-                     w="{w}"/>
-    </ReactiveSequence>
+    <Sequence>
+      <RetryUntilSuccessful num_attempts="3">
+        <OpenSerialPort port="/dev/serial0"/>
+      </RetryUntilSuccessful>
+      <ReactiveSequence>
+        <ReactiveFallback>
+          <ReactiveSequence>
+            <ReadSharedTwist v="{v}"
+                             w="{w}"/>
+            <Fallback>
+              <Sequence>
+                <InplaceRotation/>
+                <DefaultTwist v_in="0.5"
+                              w_in="{w}"
+                              v="{v}"
+                              w="{w}"/>
+              </Sequence>
+              <AlwaysSuccess/>
+            </Fallback>
+          </ReactiveSequence>
+          <DefaultTwist v_in="0"
+                        w_in="0"
+                        v="{v}"
+                        w="{w}"/>
+        </ReactiveFallback>
+        <CreateJsonCmd v="{v}"
+                       w="{w}"
+                       json_str="{json_str}"/>
+        <SendSerialPort json_str="{json_str}"/>
+      </ReactiveSequence>
+    </Sequence>
   </BehaviorTree>
 
   <!-- Description of Node Models (used by Groot) -->
@@ -34,6 +41,7 @@
             editable="true">
       <input_port name="v"/>
       <input_port name="w"/>
+      <output_port name="json_str"/>
     </Action>
     <Action ID="DefaultTwist"
             editable="true">
@@ -46,10 +54,19 @@
     </Action>
     <Condition ID="InplaceRotation"
                editable="true"/>
+    <Action ID="OpenSerialPort"
+            editable="true">
+      <input_port name="port"
+                  default="&quot;/dev/serial0&quot;">serial port</input_port>
+    </Action>
     <Action ID="ReadSharedTwist"
             editable="true">
       <output_port name="v"/>
       <output_port name="w"/>
+    </Action>
+    <Action ID="SendSerialPort"
+            editable="true">
+      <input_port name="json_str"/>
     </Action>
   </TreeNodesModel>
 

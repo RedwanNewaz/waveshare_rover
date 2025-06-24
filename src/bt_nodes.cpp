@@ -5,8 +5,86 @@
 #include <sstream>
 #include <memory>
 #include <nlohmann/json.hpp>  // you can use any JSON lib
+#include <libserial/SerialStream.h>
 
 using json = nlohmann::json;
+
+typedef std::shared_ptr<LibSerial::SerialStream> SerialStreamPtr;
+
+
+class OpenSerialPort: public BT::SyncActionNode
+{
+public:
+    OpenSerialPort(const std::string& name, const BT::NodeConfig& config, const SerialStreamPtr& serial_port)
+        : BT::SyncActionNode(name, config), serial_port_(serial_port) {}
+
+    static BT::PortsList providedPorts() {
+        return {
+            BT::InputPort<std::string>("port"),
+        };
+    }
+
+    BT::NodeStatus tick() override
+    {
+        std::string port;
+        if (!getInput<std::string>("port", port)) {
+            throw BT::RuntimeError("missing required input [port]");
+        }
+
+       try {
+            serial_port_->Open(port);
+            serial_port_->SetBaudRate(LibSerial::BaudRate::BAUD_115200);
+            serial_port_->SetCharacterSize(LibSerial::CharacterSize::CHAR_SIZE_8);
+            serial_port_->SetParity(LibSerial::Parity::PARITY_NONE);
+            serial_port_->SetStopBits(LibSerial::StopBits::STOP_BITS_1);
+            serial_port_->SetFlowControl(LibSerial::FlowControl::FLOW_CONTROL_NONE);
+            serial_port_->SetRTS(false);
+            serial_port_->SetDTR(false);
+            return BT::NodeStatus::SUCCESS;
+        } catch (const LibSerial::OpenFailed& e) {
+            std::cerr << "Error opening serial port: " << e.what() << std::endl;
+            return BT::NodeStatus::FAILURE;
+        }      
+    }
+private:
+    SerialStreamPtr serial_port_;
+};
+
+
+
+class SendSerialPort: public BT::SyncActionNode
+{
+public:
+    SendSerialPort(const std::string& name, const BT::NodeConfig& config, const SerialStreamPtr& serial_port)
+        : BT::SyncActionNode(name, config), serial_port_(serial_port) {}
+
+    static BT::PortsList providedPorts() {
+        return {
+            BT::InputPort<std::string>("json_str"),
+        };
+    }
+
+    BT::NodeStatus tick() override
+    {
+        std::string json_str;
+        if (!getInput<std::string>("json_str", json_str)) {
+            throw BT::RuntimeError("[SendSerialPort] missing required input [json_str]");
+        }
+
+       try {
+            *serial_port_ << json_str << "\n";  // Send the JSON string followed by a newline
+            return BT::NodeStatus::SUCCESS;
+        } catch (const LibSerial::NotOpen& e) {
+            std::cerr << "Serial port not open: " << e.what() << std::endl;
+            return BT::NodeStatus::FAILURE;
+        } catch (const std::exception& e) {
+            std::cerr << "Error writing to serial port: " << e.what() << std::endl;
+            return BT::NodeStatus::FAILURE;
+        }
+    }
+private:
+    SerialStreamPtr serial_port_;
+};
 
 
 class DefaultTwist : public BT::SyncActionNode
@@ -81,7 +159,8 @@ public:
 
     static BT::PortsList providedPorts() {
         return { BT::InputPort<double>("v"),
-                 BT::InputPort<double>("w")};
+                 BT::InputPort<double>("w"),
+                 BT::OutputPort<std::string>("json_str") };
     }
 
     BT::NodeStatus tick() override
@@ -94,6 +173,7 @@ public:
 
         json cmd = { {"T", 1}, {"L", v_l}, {"R", v_r} };
         std::cout << "JSON Command: " << cmd.dump() << std::endl;
+        setOutput("json_str", cmd.dump());
         return BT::NodeStatus::SUCCESS;
     }
 

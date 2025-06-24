@@ -15,7 +15,14 @@ find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
-find_package(behaviortree_cpp REQUIRED)
+#find_package(behaviortree_cpp REQUIRED)
+
+# Find libserial
+find_library(SERIAL_LIBRARY serial)
+if(NOT SERIAL_LIBRARY)
+  message(FATAL_ERROR "libserial not found")
+endif()
+
 
 add_executable(rover_controller_node src/rover_controller_node.cpp src/bt_nodes.cpp)
 target_include_directories(rover_controller_node PUBLIC
@@ -31,7 +38,10 @@ ament_target_dependencies(
   "tf2"
   "tf2_ros"
 )
-target_link_libraries(rover_controller_node behaviortree_cpp)
+target_link_libraries(rover_controller_node 
+  behaviortree_cpp
+  ${SERIAL_LIBRARY}
+)
 
 install(TARGETS rover_controller_node
   DESTINATION lib/${PROJECT_NAME})
