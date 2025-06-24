@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4"
+      main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <ReactiveSequence>
+      <ReactiveFallback>
+        <ReactiveSequence>
+          <InplaceRotation/>
+          <DefaultTwist v_in="0.5"
+                        w_in="{w}"
+                        v="{v}"
+                        w="{w}"/>
+        </ReactiveSequence>
+        <ReadSharedTwist v="{v}"
+                         w="{w}"/>
+        <DefaultTwist v_in="0"
+                      w_in="0"
+                      v="{v}"
+                      w="{w}"/>
+      </ReactiveFallback>
+      <CreateJsonCmd v="{v}"
+                     w="{w}"/>
+    </ReactiveSequence>
+  </BehaviorTree>
+
+  <!-- Description of Node Models (used by Groot) -->
+  <TreeNodesModel>
+    <Action ID="CreateJsonCmd"
+            editable="true">
+      <input_port name="v"/>
+      <input_port name="w"/>
+    </Action>
+    <Action ID="DefaultTwist"
+            editable="true">
+      <input_port name="v_in"/>
+      <input_port name="w_in"/>
+      <output_port name="v"
+                   default="0"/>
+      <output_port name="w"
+                   default="0"/>
+    </Action>
+    <Condition ID="InplaceRotation"
+               editable="true"/>
+    <Action ID="ReadSharedTwist"
+            editable="true">
+      <output_port name="v"/>
+      <output_port name="w"/>
+    </Action>
+  </TreeNodesModel>
+
+</root>
