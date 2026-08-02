@@ -18,15 +18,12 @@ class TwistToJsonNode(Node):
         self.v_l = 0.0  # Left wheel velocity
         self.angular_z = 0.0  # Angular velocity
         self.linear_x = 0.0  # Linear velocity
-        self.v_max = 0.5
 
         # IP address for HTTP requests, settable via the 'ip_address' ROS2
         # parameter (e.g. from the launch file) instead of being hardcoded.
         self.declare_parameter('ip_address', '192.168.10.148')
-        self.declare_parameter('kinematics_model', "unicycle")  # uncycle and differential        
         self.ip_address = self.get_parameter('ip_address').get_parameter_value().string_value
-        self.kinematics_model = self.get_parameter('kinematics_model').get_parameter_value().string_value
-        self.wheel_base = 0.086 #0.15 / 2.0   # Example wheel base in meters
+        self.wheel_base = 0.15 / 2.0   # Example wheel base in meters
         self.new_data_received = False
         
         # Create subscriber for cmd_vel topic
@@ -67,25 +64,7 @@ class TwistToJsonNode(Node):
         """
         v_r = v + (self.wheel_base / 2.0) * omega
         v_l = v - (self.wheel_base / 2.0) * omega
-
-        m = max(abs(v_r), abs(v_l))
-        if m <= 0.35 and m > 0.0:
-            # v_r *= self.v_max 
-            # v_l *= self.v_max 
-            k = 1.2
-            v = 0.5 - 0.1 * np.exp(-m * k)
-            v_r = np.sign(v_r) * v 
-            v_l = np.sign(v_l) * v
-            # v_r = self.sigmoid(self.angular_z, k=500) 
-            # v_l = self.sigmoid(-self.angular_z, k=500)
-        
-
-        v_r = np.clip(v_r, -self.v_max, self.v_max)
-        v_l = np.clip(v_l, -self.v_max, self.v_max)
         return v_l, v_r
-
-
-
     
     def timer_callback(self):
         """Timer callback for periodic tasks (if needed)"""
@@ -95,25 +74,12 @@ class TwistToJsonNode(Node):
             return
 
         # Create JSON command in the specified format
-        json_cmd = {}
+        json_cmd = {
+            "T": 1,  # Fixed value as shown in example
+            "L": self.v_l,  # Linear velocity in m/s
+            "R": self.v_r  # Angular velocity in rad/s
+        }
 
-        if self.kinematics_model == "differential":
-            json_cmd = {
-                "T": 1,  # Fixed value as shown in example
-                "L": self.v_l,  # Linear velocity in m/s
-                "R": self.v_r  # Angular velocity in rad/s
-            }
-        elif self.kinematics_model == "unicycle":
-
-            if self.linear_x == 0.0 and self.angular_z != 0.0:
-                self.linear_x = 0.5
-
-            json_cmd = {
-                "T": 13,  # Fixed value as shown in example
-                "X": self.linear_x,  # Linear velocity in m/s
-                "Z": self.angular_z  # Angular velocity in rad/s
-            }
-    
         # json_cmd = {
         #     "T": 13,  # Fixed value as shown in example
         #     "X": self.linear_x,  # Linear velocity in m/s
@@ -143,18 +109,30 @@ class TwistToJsonNode(Node):
         self.angular_z = 0.0
         self.linear_x = 0.0
     
-    def sigmoid (self, x, k=5):
+    def sigmoid (self, x):
         """Sigmoid function for smooth control"""
-        return 1.0 / (1.0 + np.exp(-k * x)) - 0.5
+        return 1 / (1 + np.exp(-x))
 
     def twist_callback(self, msg):
         """Callback function for Twist messages"""
-        
-        self.angular_z = -msg.angular.z
-        self.linear_x = msg.linear.x 
-        
+        # Extract linear.x and angular.z from Twist message
 
-        self.v_r, self.v_l = self.unicycle_to_diff(msg.linear.x, -msg.angular.z)
+        # print(msg)
+        
+        # self.angular_z = -msg.angular.z
+        # self.linear_x = 0.5 if abs(self.angular_z) > 0 else msg.linear.x 
+
+
+
+        
+        
+        if abs(msg.linear.x) > 0.0:
+
+            self.v_r, self.v_l = self.unicycle_to_diff(msg.linear.x, msg.angular.z)
+        elif abs(msg.angular.z)> 0.0:
+            self.v_r, self.v_l = msg.angular.z, -msg.angular.z
+        
+   
         self.new_data_received = True
      
         
@@ -164,7 +142,7 @@ class TwistToJsonNode(Node):
         """Send HTTP GET request with JSON command"""
         try:
             url = f"http://{self.ip_address}/js?json={json_cmd}"
-            response = requests.get(url, timeout=1)
+            response = requests.get(url, timeout=10)
         except requests.exceptions.RequestException as e:
             self.get_logger().error(f'HTTP request failed: {str(e)}')
         except Exception as e:

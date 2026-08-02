@@ -9,57 +9,51 @@ from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
-    # Declare launch arguments
-    joy_config_arg = DeclareLaunchArgument(
-        'joy_config',
-        default_value='xbox',
-        description='Joystick configuration (ps3, ps4, xbox, etc.)'
+
+    namespace_arg = DeclareLaunchArgument(
+        'namespace',
+        default_value='waver',
+        description='Namespace to launch the joystick, teleop, and rover controller nodes under.'
     )
-    
-    device_name_arg = DeclareLaunchArgument(
-        'device_name',
-        default_value='',
-        description='Joy device name (empty for default)'
+
+    ip_address_arg = DeclareLaunchArgument(
+        'ip_address',
+        default_value='192.168.10.148',
+        description='IP address the rover controller node sends HTTP drive commands to.'
     )
-    # Include teleop_twist_joy launch file with configurable joy config
-    teleop_twist_joy_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([
-            PathJoinSubstitution([
-                FindPackageShare('teleop_twist_joy'),
-                'launch',
-                'teleop-launch.py'
-            ])
-        ]),
-        launch_arguments={
-            'joy_config': LaunchConfiguration('joy_config')
-        }.items()
-    )
-    
-    # Joy node with configurable device
+
+    namespace = LaunchConfiguration('namespace')
+    ip_address = LaunchConfiguration('ip_address')
+
+    # enable joystick controller
     joy_node = Node(
-        package='joy',
-        executable='joy_node',
         name='joy_node',
-        output='screen',
-        parameters=[{
-            'device_name': LaunchConfiguration('device_name'),
-            'autorepeat_rate': 20.0,
-            'deadzone': 0.05
-        }]
+        package="joy",
+        executable="joy_node",
+        namespace=namespace
     )
-    
+
+    teleop_node = Node(
+        name = 'teleop_node',
+        package = "teleop_twist_joy",
+        executable="teleop_node",
+        namespace=namespace
+    )
+
     # Rover controller node
     rover_controller_node = Node(
         package='rover_controller',
         executable='rover_controller_node',
         name='rover_controller_node',
-        output='screen'
+        namespace=namespace,
+        output='screen',
+        parameters=[{'ip_address': ip_address}]
     )
-    
+
     return LaunchDescription([
-        joy_config_arg,
-        # device_name_arg,
-        teleop_twist_joy_launch,
-        # joy_node,
+        namespace_arg,
+        ip_address_arg,
+        joy_node,
+        teleop_node,
         rover_controller_node
     ])
